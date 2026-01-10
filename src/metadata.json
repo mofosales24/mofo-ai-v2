@@ -1,0 +1,8 @@
+{
+  "name": "MOFO Content Creator",
+  "description": "An AI-powered personal branding and content strategy platform designed specifically for insurance professionals to build authority and attract leads.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
