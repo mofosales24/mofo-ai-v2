@@ -1,12 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-HK"> <!-- ✅ 改為香港繁體中文，對搜尋引擎更好 -->
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MOFO Content Creator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MOFO Content Creator | AI 品牌與內容引擎</title>
     
-    <!-- 這是樣式工具，保留它你的畫面才會有顏色 -->
+    <!-- SEO 與社群分享 Meta 標籤 -->
+    <meta name="description" content="MOFO Content Creator - 專為保險理財顧問打造的 AI 品牌定位與內容生成工具。">
+    <meta name="theme-color" content="#0f1115">
+
+    <!-- Tailwind CSS (CDN 版本) -->
+    <!-- 提示：如果未來要上正式生產環境，建議改用正式的 Tailwind 安裝方式，但目前維持現狀即可 -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind 自定義配置 (確保自定義顏色能運作) -->
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              amber: {
+                450: '#fbbf24',
+              }
+            }
+          }
+        }
+      }
+    </script>
     
     <!-- 字體設定 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,30 +35,50 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
+        /* 全域基礎樣式 */
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             background-color: #0f1115;
             color: #f1f5f9;
+            margin: 0;
+            padding: 0;
+            /* 防止行動端橡皮條效果 */
+            overflow-x: hidden;
         }
+
+        /* 滾動條美化 (針對 Chrome, Safari, Edge) */
         ::-webkit-scrollbar {
             width: 8px;
         }
         ::-webkit-scrollbar-track {
-            background: #181b21;
+            background: #0f1115;
         }
         ::-webkit-scrollbar-thumb {
             background: #334155;
-            border-radius: 4px;
+            border-radius: 10px;
+            border: 2px solid #0f1115;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #475569;
+            background: #fbbf24; /* 滾動時變成 amber 顏色 */
+        }
+
+        /* 文字選取顏色 */
+        ::selection {
+            background-color: #fbbf24;
+            color: #000;
+        }
+
+        /* 移除行動端點擊高亮 */
+        * {
+            -webkit-tap-highlight-color: transparent;
         }
     </style>
 </head>
 <body>
+    <!-- React 渲染節點 -->
     <div id="root"></div>
     
-    <!-- ⚠️ 關鍵修正：加上這行，網頁才知道要去哪裡執行 React 程式 -->
+    <!-- Vite 專案入口文件 -->
     <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>

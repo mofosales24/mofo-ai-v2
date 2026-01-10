@@ -1,19 +1,26 @@
-const extract = (t: string) => {
+const extractJSON = (text: string) => {
   try {
-    let c = t.replace(/```json/g, '').replace(/```/g, '').trim();
-    const f = Math.min(c.indexOf('[')===-1?999:c.indexOf('['), c.indexOf('{')===-1?999:c.indexOf('{'));
-    const l = Math.max(c.lastIndexOf(']'), c.lastIndexOf('}'));
-    return JSON.parse(c.substring(f, l + 1));
+    let clean = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const first = Math.min(clean.indexOf('[') === -1 ? 9999 : clean.indexOf('['), clean.indexOf('{') === -1 ? 9999 : clean.indexOf('{'));
+    const last = Math.max(clean.lastIndexOf(']'), clean.lastIndexOf('}'));
+    return JSON.parse(clean.substring(first, last + 1));
   } catch (e) { return null; }
 };
-async function call(sys: string, p: string) {
-  const r = await fetch('/api/creator-proxy', { method: 'POST', body: JSON.stringify({ systemInstruction: sys, prompt: p }) });
-  return extract(await r.text());
+
+async function callProxy(sys: string, prompt: string) {
+  const res = await fetch('/api/creator-proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ systemInstruction: sys, prompt }),
+  });
+  const text = await res.text();
+  return extractJSON(text);
 }
+
 export const aiCreatorService = {
-  generateTargetAudiences: (f: any) => call("分析3個受眾。輸出JSON Array: [{\"type\":\"人群\",\"reason\":\"原因\"}]", JSON.stringify(f)),
-  generatePainPoints: (t: string) => call("分析5個保險痛點。輸出JSON Array", t),
-  generateSixBios: (d: any) => call("生成6款IG Bio。輸出JSON Object: {\"s1\":\"...\",\"s2\":\"...\"}", d.target),
-  generateVideoTitles: (d: any) => call("生成10個吸睛影片選題。輸出JSON Array", d.target),
-  generateFinalContent: (d: any) => call("生成影片腳本、Threads文案。用粵語口語。", d.topic)
+  generateTargetAudiences: (f: any) => callProxy("分析3個最適合用戶背景嘅受眾。輸出 JSON Array: [{\"type\":\"人群名\",\"reason\":\"原因\"}]", JSON.stringify(f)),
+  generatePainPoints: (target: string) => callProxy("針對呢個人群分析5個保險痛點。輸出 JSON Array: [\"痛點1\", \"...\"]", target),
+  generateSixBios: (d: any) => callProxy("生成6款唔同風格IG Bio。輸出 JSON Object: {\"s1\":\"...\", \"s2\":\"...\"}", d.target),
+  generateVideoTitles: (d: any) => callProxy("生成10個選題(價值+共鳴)。輸出 JSON Array: [{\"title\":\"...\",\"type\":\"價值\"}]", d.target),
+  generateFinalContent: (d: any) => callProxy("你是自媒體導師。生成詳細影音腳本、Threads文案。用廣東話口語。", d.topic)
 };
