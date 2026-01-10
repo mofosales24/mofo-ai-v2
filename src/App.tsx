@@ -5,9 +5,6 @@ import { LoginView, DashboardView, AdminView, Navigation, SettingsModalUI } from
 import { WizardView } from './components/WizardView';
 import { AIGenCreator } from './components/AIGenCreator';
 
-console.log('🚀 CURRENT_PROJECT: mofo-creator-v2.0.6');
-console.log('💎 VERSION: 2.0.6_STABLE');
-
 const ADMIN_USER: User = { id: 'admin_static', name: 'MOFO Master', username: 'admin', password: 'mofo2026', role: 'admin', status: 'active', createdAt: new Date().toISOString() };
 
 const App = () => {
@@ -15,45 +12,59 @@ const App = () => {
   const [view, setView] = useState<AppView>('login');
   const [brands, setBrands] = useState<Brand[]>([]);
   const [currentBrand, setCurrentBrand] = useState<Brand | null>(null);
+  const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
-    const init = async () => {
+    const initApp = async () => {
+      // 設置 5 秒超時，防止連線卡死
+      const timeout = setTimeout(() => { if (initialLoading) setInitialLoading(false); }, 5000);
+      
       const session = localStorage.getItem('mofo_session');
       if (session) {
-        const u = JSON.parse(session); setUser(u);
-        setBrands(await cloudService.getBrands(u.id));
-        setView(u.role === 'admin' ? 'admin' : 'dashboard');
+        try {
+          const u = JSON.parse(session); setUser(u);
+          const cloudBrands = await cloudService.getBrands(u.id);
+          setBrands(cloudBrands);
+          setView(u.role === 'admin' ? 'admin' : 'dashboard');
+        } catch (e) { console.error("Session sync failed"); }
       }
+      clearTimeout(timeout);
       setInitialLoading(false);
     };
-    init();
+    initApp();
   }, []);
 
   const handleLogin = async (u: string, p: string) => {
+    setLoading(true);
     if (u === ADMIN_USER.username && p === ADMIN_USER.password) {
       setUser(ADMIN_USER); localStorage.setItem('mofo_session', JSON.stringify(ADMIN_USER));
-      setBrands(await cloudService.getBrands(ADMIN_USER.id)); setView('admin'); return;
+      setBrands(await cloudService.getBrands(ADMIN_USER.id)); setView('admin'); setLoading(false); return;
     }
-    const users = await cloudService.getUsers();
-    const found = users.find(user => user.username === u && user.password === p);
-    if (found) {
-      setUser(found); localStorage.setItem('mofo_session', JSON.stringify(found));
-      setBrands(await cloudService.getBrands(found.id)); setView('dashboard');
-    } else alert("Error");
+    try {
+      const users = await cloudService.getUsers();
+      const found = users.find(user => user.username === u && user.password === p);
+      if (found) {
+        setUser(found); localStorage.setItem('mofo_session', JSON.stringify(found));
+        setBrands(await cloudService.getBrands(found.id)); setView('dashboard');
+      } else { alert("帳號或密碼錯誤"); }
+    } catch (e) { alert("雲端連線失敗，請檢查網路"); }
+    setLoading(false);
   };
 
-  if (initialLoading) return <div className="min-h-screen bg-[#0f1115] flex items-center justify-center text-white font-black animate-pulse">MOFO V2.0.6 SYNCING...</div>;
-  if (view === 'login') return <LoginView onLogin={handleLogin} />;
+  if (initialLoading) {
+    return <div className="min-h-screen bg-[#0f1115] flex flex-col items-center justify-center text-white gap-4 font-black animate-pulse">MOFO CLOUD CONNECTING...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#0f1115]">
-      {view !== 'ai-creator' && <Navigation user={user} setView={setView} isDarkMode={isDarkMode} setShowSettings={setShowSettings} tc={{}} />}
-      {showSettings && <SettingsModalUI setShowSettings={setShowSettings} setView={setView} />}
+      {view !== 'login' && view !== 'ai-creator' && <Navigation user={user} setView={setView} isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} setShowSettings={setShowSettings} />}
+      {showSettings && <SettingsModalUI setShowSettings={setShowSettings} />}
+      {view === 'login' && <LoginView onLogin={handleLogin} loading={loading} />}
       {view === 'dashboard' && <DashboardView brands={brands} onLaunchCreator={() => setView('ai-creator')} onOpenBrand={(b:any)=>{setCurrentBrand(b); setView('wizard');}} />}
-      {view === 'ai-creator' && <AIGenCreator onBack={() => setView('dashboard')} isDarkMode={isDarkMode} tc={{}} />}
+      {view === 'ai-creator' && <AIGenCreator onBack={() => setView('dashboard')} isDarkMode={true} tc={{}} />}
       {view === 'wizard' && <WizardView setView={setView} />}
       {view === 'admin' && <AdminView setView={setView} />}
     </div>
