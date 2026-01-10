@@ -1,18 +1,15 @@
-const parseAI = (text: string) => {
-  try {
-    const clean = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(clean);
-  } catch (e) { return null; }
+const parseAI = (t: string) => {
+  try { return JSON.parse(t.replace(/```json/g, '').replace(/```/g, '').trim()); } 
+  catch (e) { return null; }
 };
 async function callProxy(sys: string, prompt: string) {
   const res = await fetch('/api/creator-proxy', { method: 'POST', body: JSON.stringify({ systemInstruction: sys, prompt }) });
-  const text = await res.text();
-  return parseAI(text) || text;
+  return parseAI(await res.text());
 }
 export const aiCreatorService = {
-  generateTargetAudiences: (f: any) => callProxy("分析3個適合用戶嘅受眾。輸出 JSON Array: [{\"type\":\"人群名\",\"reason\":\"原因\"}]", JSON.stringify(f)),
-  generatePainPoints: (target: string) => callProxy("列出5個痛點。輸出 JSON Array", target),
-  generateSixBios: (d: any) => callProxy("生成6款IG Bio。輸出 JSON Object", d.target),
-  generateVideoTitles: (d: any) => callProxy("生成10個吸睛題目。輸出 JSON Array", d.target),
-  generateFinalContent: (d: any) => callProxy("生成全套內容矩陣。用粵語口語。", d.topic)
+  generateTarget: (f: any) => callProxy("你係香港保險大師。分析3個受眾。輸出JSON Array: [{\"type\":\"人群\",\"reason\":\"原因\"}]", JSON.stringify(f)),
+  generatePains: (t: string) => callProxy("分析呢個人群5個保險痛點。輸出JSON Array", t),
+  generateBios: (d: any) => callProxy("生成6款唔同風格嘅粵語IG Bio。輸出JSON Object: {\"s1\":\"...\",\"s2\":\"...\"}", d.target),
+  generateTitles: (d: any) => callProxy("生成10個選題(5價值,5共鳴)。輸出JSON Array", d.target),
+  generateMatrix: (d: any) => callProxy("你是自媒體專家。生成：1.影片腳本 2.懶人包 3.Threads文案 4.參考影片。用廣東話口語。", d.topic)
 };
