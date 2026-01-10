@@ -4,12 +4,14 @@ import { AppView, User, UserProfile } from './types';
 import { aiService } from './services/geminiService';
 import { cloudService } from './services/cloudService';
 
-import { LoginView, DashboardView, AdminView, Navigation, SettingsModalUI } from './components/Views';
+import { LoginView, DashboardView } from './components/Views';
 import { ProfileView } from './components/ProfileView';
 import { TargetView } from './components/TargetView';
 import { PainPointView } from './components/PainPointView';
 import { StrategyView } from './components/StrategyView';
 import { ScriptView } from './components/ScriptView';
+
+console.log('🚀 CURRENT_PROJECT: mofo-creator-v2.1.0_FIXED');
 
 const ADMIN_USER: User = { 
   id: 'admin_static', name: 'MOFO Master', username: 'admin', 
@@ -21,22 +23,19 @@ const App = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [isDarkMode, setIsDarkMode] = useState(true);
-  const [showSettings, setShowSettings] = useState(false);
   
   const [profile, setProfile] = useState<UserProfile>({ role: '銷售', name: '', age: '', gender: '男', profession: '', experience: '', hobbies: '' });
   const [aiData, setAiData] = useState<any>({ targets: [], pains: [], strategies: [], script: null, extensions: [] });
-  const [selections, setSelections] = useState<any>({ targets: [], pains: [], strategy: '' });
+  const [selections, setSelections] = useState({ targets: [], pains: [], strategy: '' });
 
   useEffect(() => {
     const initApp = async () => {
       const session = localStorage.getItem('mofo_session');
       if (session) {
         try {
-          const u = JSON.parse(session);
-          setUser(u);
-          setView(u.role === 'admin' ? 'admin' : 'dashboard');
-        } catch (e) { console.error("Session sync failed"); }
+          const u = JSON.parse(session); setUser(u);
+          setView('dashboard');
+        } catch (e) { console.error("Session fail"); }
       }
       setInitialLoading(false);
     };
@@ -46,16 +45,12 @@ const App = () => {
   const handleLogin = async (u: string, p: string) => {
     setLoading(true);
     if (u === ADMIN_USER.username && p === 'mofo2026') {
-      setUser(ADMIN_USER);
-      localStorage.setItem('mofo_session', JSON.stringify(ADMIN_USER));
-      setView('admin');
+      setUser(ADMIN_USER); setView('dashboard');
     } else {
       const users = await cloudService.getUsers();
       const found = users.find(user => user.username === u && user.password === p);
-      if (found) {
-        if (found.status === 'suspended') alert("帳號停用");
-        else { setUser(found); localStorage.setItem('mofo_session', JSON.stringify(found)); setView('dashboard'); }
-      } else alert("帳號密碼錯誤");
+      if (found) { setUser(found); setView('dashboard'); }
+      else alert("帳號或密碼錯誤");
     }
     setLoading(false);
   };
@@ -81,31 +76,32 @@ const App = () => {
         setAiData({ ...aiData, script: res, extensions: ext });
         setView('script');
       }
-    } catch (e) { alert("AI 思考中，請確保 VPN 已開啟"); }
+    } catch (e) {
+      alert("AI 思考中，請確保 VPN 已開啟 (Gemini 2.0 限制)");
+    }
     setLoading(false);
   };
-
-  const tc = { bg: 'bg-[#0f1115]', border: 'border-white/5', navBg: 'bg-[#0f1115]/80', text: 'text-slate-200', card: 'bg-[#181b21] border-white/5', input: 'bg-black/20 border-white/10 text-white', modalCard: 'bg-[#181b21] border-white/10' };
 
   if (initialLoading) return <div className="min-h-screen bg-[#0f1115] flex items-center justify-center text-amber-500 font-black animate-pulse italic">MOFO CLOUD SYNCING...</div>;
   if (view === 'login') return <LoginView onLogin={handleLogin} loading={loading} isDarkMode={true} />;
 
   return (
-    <div className={`min-h-screen ${tc.bg}`}>
-      <Navigation user={user} setView={setView} isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} setShowSettings={setShowSettings} tc={tc} />
-      {showSettings && <SettingsModalUI setShowSettings={setShowSettings} setView={setView} tc={tc} />}
-      
+    <div className="min-h-screen bg-[#0f1115] text-slate-200 font-sans">
       <div className="max-w-4xl mx-auto p-6 md:p-10">
-        {view === 'admin' && <AdminView setView={setView} />}
-        {view === 'dashboard' && <DashboardView onLaunchCreator={() => setView('profile')} isDarkMode={isDarkMode} tc={tc} />}
+        <header className="mb-10 flex justify-between items-center border-b border-white/5 pb-6">
+          <h1 className="text-2xl font-black italic text-white">MOFO <span className="text-amber-500">CREATOR v2.1.0</span></h1>
+          {view !== 'dashboard' && <button onClick={() => setView('dashboard')} className="text-xs font-bold opacity-40 hover:opacity-100 flex items-center gap-1"><ArrowLeft size={12}/> 返回主頁</button>}
+        </header>
+
+        {view === 'dashboard' && <DashboardView onLaunchCreator={() => setView('profile')} isDarkMode={true} brands={[]} />}
         {view === 'profile' && <ProfileView form={profile} setForm={setProfile} onNext={() => handleNext('profile')} loading={loading} />}
-        {view === 'target' && <TargetView targets={aiData.targets} selectedTargets={selections.targets} setSelectedTargets={(val: any) => setSelections({...selections, targets: val})} onNext={() => handleNext('target')} loading={loading} />}
-        {view === 'pain' && <PainPointView pains={aiData.pains} selectedPains={selections.pains} setSelectedPains={(val: any) => setSelections({...selections, pains: val})} onNext={() => handleNext('pain')} loading={loading} />}
-        {view === 'strategy' && <StrategyView strategies={aiData.strategies} selectedStrategy={selections.strategy} setSelectedStrategy={(val: any) => setSelections({...selections, strategy: val})} onNext={() => handleNext('strategy')} loading={loading} />}
-        {view === 'script' && <ScriptView script={aiData.script} extensions={aiData.extensions} onExtend={(ext: string) => { /* 拓展腳本 */ }} />}
+        {view === 'target' && <TargetView targets={aiData.targets} selectedTargets={selections.targets} setSelectedTargets={(v: any) => setSelections({ ...selections, targets: v })} onNext={() => handleNext('target')} loading={loading} />}
+        {view === 'pain' && <PainPointView pains={aiData.pains} selectedPains={selections.pains} setSelectedPains={(v: any) => setSelections({ ...selections, pains: v })} onNext={() => handleNext('pain')} loading={loading} />}
+        {view === 'strategy' && <StrategyView strategies={aiData.strategies} selectedStrategy={selections.strategy} setSelectedStrategy={(v: any) => setSelections({ ...selections, strategy: v })} onNext={() => handleNext('strategy')} loading={loading} />}
+        {view === 'script' && <ScriptView script={aiData.script} extensions={aiData.extensions} onExtend={()=>{}} />}
+        
+        {loading && <div className="fixed bottom-10 right-10 flex items-center gap-3 bg-amber-500 text-black px-8 py-4 rounded-full font-black animate-bounce shadow-2xl z-[100]"><RefreshCw className="animate-spin" size={20} /> AI 計算中...</div>}
       </div>
-      
-      {loading && <div className="fixed bottom-10 right-10 flex items-center gap-3 bg-amber-500 text-black px-8 py-4 rounded-full font-black animate-bounce shadow-2xl z-[100]"><RefreshCw className="animate-spin" size={20} /> AI 內容計算中...</div>}
     </div>
   );
 };
