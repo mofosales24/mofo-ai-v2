@@ -1,4 +1,14 @@
-// src/services/aiCreatorService.ts
+const parseAIResponse = (text: string) => {
+  try {
+    // 移除 AI 可能輸出的 ```json ... ``` 標籤
+    const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(cleanText);
+  } catch (e) {
+    console.error("JSON Parse Error. Raw text:", text);
+    return null;
+  }
+};
+
 async function callProxy(system: string, prompt: string) {
   const res = await fetch('/api/creator-proxy', {
     method: 'POST',
@@ -6,43 +16,28 @@ async function callProxy(system: string, prompt: string) {
     body: JSON.stringify({ systemInstruction: system, prompt }),
   });
   const text = await res.text();
-  try { return JSON.parse(text); } catch { return text; }
+  return parseAIResponse(text) || text; // 如果解析失敗就回傳原文字
 }
 
 export const aiCreatorService = {
-  // C. 根據用戶背景生成目標人群
   generateTargetAudiences: (form: any) => {
-    const sys = "根據用戶嘅職業、人生經歷同喜好，分析出3個佢最熟悉、最容易成交嘅目標人群。輸出JSON Array: [{\"type\":\"人群名\",\"reason\":\"點解適合你\"}]";
+    const sys = "你係保險自媒體導師。分析3個最適合用戶嘅受眾。必須只輸出 JSON Array: [{\"type\":\"人群名\",\"reason\":\"原因\"}]，唔好比任何解釋文字。";
     return callProxy(sys, JSON.stringify(form));
   },
-
-  // D. 生成人群痛點
   generatePainPoints: (target: string) => {
-    const sys = "分析呢個目標人群喺保險理財上嘅5個核心痛點同需求。輸出JSON Array: [\"痛點1\", \"...\"]";
+    const sys = "針對該受眾列出5個保險理財痛點。必須只輸出 JSON Array: [\"痛點1\", \"...\"]";
     return callProxy(sys, target);
   },
-
-  // E. 生成 6 款不同風格 Bio
   generateSixBios: (d: any) => {
-    const sys = "生成6款IG個人檔案。1.首選專家 2.首選朋友 3.次選專家 4.次選朋友 5.混合專家 6.混合朋友。輸出JSON Object: {\"s1\":\"...\", \"s2\":\"...\"}";
-    return callProxy(sys, `受眾:${d.target}, 痛點:${d.pain}, 範疇:${d.p1}及${d.p2}`);
+    const sys = "生成6款IG Bio。必須只輸出 JSON Object: {\"s1\":\"...\", \"s2\":\"...\", \"s3\":\"...\", \"s4\":\"...\", \"s5\":\"...\", \"s6\":\"...\"}";
+    return callProxy(sys, `受眾:${d.target}, 範疇:${d.p1}`);
   },
-
-  // F. 生成影片題目
   generateVideoTitles: (d: any) => {
-    const sys = "生成10個吸睛嘅影片題目。5個「價值型」，5個「共鳴型」。考慮用戶個人風格。輸出JSON Array: [{\"title\":\"...\",\"type\":\"價值/共鳴\"}]";
+    const sys = "生成10個影片題目。必須只輸出 JSON Array: [{\"title\":\"...\",\"type\":\"價值/共鳴\"}]";
     return callProxy(sys, JSON.stringify(d));
   },
-
-  // G. 生成拍攝形式建議 (可選)
-  generateShootFormats: (topic: string) => {
-    const sys = "針對呢個題目，建議4種適合嘅拍攝形式（如B-Roll、對鏡頭講嘢等）。輸出JSON Array: [{\"format\":\"...\",\"reason\":\"...\"}]";
-    return callProxy(sys, topic);
-  },
-
-  // H. 生成最終全套內容 (名稱統一為 generateFinalMatrix)
-  generateFinalMatrix: (d: any) => {
-    const sys = "你是自媒體大師。針對選定題目同拍攝形式，生成：1. 影音腳本 2. 懶人包大綱 3. Threads 爆紅文案 4. 建議參考影片內容。";
+  generateFinalContent: (d: any) => {
+    const sys = "你是自媒體大師。生成：1.影音腳本 2.懶人包 3.Threads文案 4.參考影片方向。用粵語口語。";
     return callProxy(sys, JSON.stringify(d));
   }
 };
