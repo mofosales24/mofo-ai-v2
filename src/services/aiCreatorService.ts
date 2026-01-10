@@ -1,43 +1,18 @@
-const parseAIResponse = (text: string) => {
+const parseAI = (text: string) => {
   try {
-    // 移除 AI 可能輸出的 ```json ... ``` 標籤
-    const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(cleanText);
-  } catch (e) {
-    console.error("JSON Parse Error. Raw text:", text);
-    return null;
-  }
+    const clean = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(clean);
+  } catch (e) { return null; }
 };
-
-async function callProxy(system: string, prompt: string) {
-  const res = await fetch('/api/creator-proxy', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ systemInstruction: system, prompt }),
-  });
+async function callProxy(sys: string, prompt: string) {
+  const res = await fetch('/api/creator-proxy', { method: 'POST', body: JSON.stringify({ systemInstruction: sys, prompt }) });
   const text = await res.text();
-  return parseAIResponse(text) || text; // 如果解析失敗就回傳原文字
+  return parseAI(text) || text;
 }
-
 export const aiCreatorService = {
-  generateTargetAudiences: (form: any) => {
-    const sys = "你係保險自媒體導師。分析3個最適合用戶嘅受眾。必須只輸出 JSON Array: [{\"type\":\"人群名\",\"reason\":\"原因\"}]，唔好比任何解釋文字。";
-    return callProxy(sys, JSON.stringify(form));
-  },
-  generatePainPoints: (target: string) => {
-    const sys = "針對該受眾列出5個保險理財痛點。必須只輸出 JSON Array: [\"痛點1\", \"...\"]";
-    return callProxy(sys, target);
-  },
-  generateSixBios: (d: any) => {
-    const sys = "生成6款IG Bio。必須只輸出 JSON Object: {\"s1\":\"...\", \"s2\":\"...\", \"s3\":\"...\", \"s4\":\"...\", \"s5\":\"...\", \"s6\":\"...\"}";
-    return callProxy(sys, `受眾:${d.target}, 範疇:${d.p1}`);
-  },
-  generateVideoTitles: (d: any) => {
-    const sys = "生成10個影片題目。必須只輸出 JSON Array: [{\"title\":\"...\",\"type\":\"價值/共鳴\"}]";
-    return callProxy(sys, JSON.stringify(d));
-  },
-  generateFinalContent: (d: any) => {
-    const sys = "你是自媒體大師。生成：1.影音腳本 2.懶人包 3.Threads文案 4.參考影片方向。用粵語口語。";
-    return callProxy(sys, JSON.stringify(d));
-  }
+  generateTargetAudiences: (f: any) => callProxy("分析3個適合用戶嘅受眾。輸出 JSON Array: [{\"type\":\"人群名\",\"reason\":\"原因\"}]", JSON.stringify(f)),
+  generatePainPoints: (target: string) => callProxy("列出5個痛點。輸出 JSON Array", target),
+  generateSixBios: (d: any) => callProxy("生成6款IG Bio。輸出 JSON Object", d.target),
+  generateVideoTitles: (d: any) => callProxy("生成10個吸睛題目。輸出 JSON Array", d.target),
+  generateFinalContent: (d: any) => callProxy("生成全套內容矩陣。用粵語口語。", d.topic)
 };
